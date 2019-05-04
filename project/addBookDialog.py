@@ -14,19 +14,17 @@ class addBookDialog(QDialog):
         super(addBookDialog, self).__init__(parent)
         self.setUpUI()
         self.setWindowModality(Qt.WindowModal)
-        self.setWindowTitle("Add Collections")
+        self.setWindowTitle("Add Book")
 
     def setUpUI(self):
-        # Book Names, Book IDs, Authors, Classification, Quality, Press, Press_Date
-        # Classification: "Philosophy", "Social Science", "Politics", "legislation", "Military", "Economics", "Culture", "Education",
-        # "Linguistics", "Art", "History", "geography", "Astronomy",
         # 书名，书号，作者，分类，添加数量.出版社,出版日期
         # 书籍分类：哲学类、社会科学类、政治类、法律类、军事类、经济类、文化类、教育类、体育类、语言文字类、艺术类、历史类、地理类、天文学类、生物学类、医学卫生类、农业类
         BookCategory = ["Philosophy", "Social Science", "Politics", "legislation", "Military", "Economics", "Culture", "Education",
-        "Linguistics", "Art", "History", "geography", "Astronomy"]
-        self.resize(300,400)
+"Linguistics", "Art", "History", "geography", "Astronomy"]
+        self.resize(300, 400)
         self.layout = QFormLayout()
         self.setLayout(self.layout)
+
 
         # Label控件
         self.titlelabel = QLabel("Add Book")
@@ -45,7 +43,6 @@ class addBookDialog(QDialog):
         # lineEdit控件
         self.bookNameEdit = QLineEdit()
         self.bookIdEdit = QLineEdit()
-        self.ISSNEdit = QLineEdit()
         self.authNameEdit = QLineEdit()
         self.categoryComboBox = QComboBox()
         self.categoryComboBox.addItems(BookCategory)
@@ -56,18 +53,16 @@ class addBookDialog(QDialog):
         self.addNumEdit = QLineEdit()
 
         self.bookNameEdit.setMaxLength(10)
-        self.bookIdEdit.setMaxLength(20)
-        self.ISSNEdit.setMaxLength(20)
+        self.bookIdEdit.setMaxLength(6)
         self.authNameEdit.setMaxLength(10)
         self.publisherEdit.setMaxLength(10)
-        self.addNumEdit.setMaxLength(50)
-        # self.addNumEdit.setValidator(QIntValidator())
+        self.addNumEdit.setMaxLength(12)
+        self.addNumEdit.setValidator(QIntValidator())
 
         # 添加进formlayout
         self.layout.addRow("", self.titlelabel)
         self.layout.addRow(self.bookNameLabel, self.bookNameEdit)
         self.layout.addRow(self.bookIdLabel, self.bookIdEdit)
-        self.layout.addRow(self.ISSNLabel, self.ISSNEdit)
         self.layout.addRow(self.authNameLabel, self.authNameEdit)
         self.layout.addRow(self.categoryLabel, self.categoryComboBox)
         self.layout.addRow(self.publisherLabel, self.publisherEdit)
@@ -82,7 +77,6 @@ class addBookDialog(QDialog):
         font.setPixelSize(14)
         self.bookNameLabel.setFont(font)
         self.bookIdLabel.setFont(font)
-        self.ISSNLabel.setFont(font)
         self.authNameLabel.setFont(font)
         self.categoryLabel.setFont(font)
         self.publisherLabel.setFont(font)
@@ -91,7 +85,6 @@ class addBookDialog(QDialog):
 
         self.bookNameEdit.setFont(font)
         self.bookIdEdit.setFont(font)
-        self.ISSNEdit.setFont(font)
         self.authNameEdit.setFont(font)
         self.publisherEdit.setFont(font)
         self.publishTime.setFont(font)
@@ -101,8 +94,8 @@ class addBookDialog(QDialog):
         # button设置
         font.setPixelSize(16)
         self.addBookButton.setFont(font)
-        self.addBookButton.setFixedHeight(50)
-        self.addBookButton.setFixedWidth(200)
+        self.addBookButton.setFixedHeight(32)
+        self.addBookButton.setFixedWidth(140)
 
         # 设置间距
         self.titlelabel.setMargin(8)
@@ -113,42 +106,38 @@ class addBookDialog(QDialog):
     def addBookButtonCicked(self):
         bookName = self.bookNameEdit.text()
         bookId = self.bookIdEdit.text()
-        ISSN=self.ISSNEdit.text()
         authName = self.authNameEdit.text()
         bookCategory = self.categoryComboBox.currentText()
         publisher = self.publisherEdit.text()
         publishTime = self.publishTime.text()
-        location = self.addNumEdit.text()
+        addBookNum = self.addNumEdit.text()
         if (
-                bookName == "" or bookId == "" or ISSN=="" or authName == "" or bookCategory == "" or publisher == "" or publishTime == "" or location == ""):
+                bookName == "" or bookId == "" or authName == "" or bookCategory == "" or publisher == "" or publishTime == "" or addBookNum == ""):
             print(QMessageBox.warning(self, "Warning", "Blank is not aollowed，operation Failed", QMessageBox.Yes, QMessageBox.Yes))
             return
         else:
-            # addBookNum = int(addBookNum)
+            addBookNum = int(addBookNum)
             db = QSqlDatabase.addDatabase("QSQLITE")
             db.setDatabaseName('./db/LibraryManagement.db')
             db.open()
             query = QSqlQuery()
-            # 如果bookID已存在:提示已经存在
+            # 如果已存在，则update Book表的现存量，剩余可借量，不存在，则insert Book表，同时insert buyordrop表
             sql = "SELECT * FROM Book WHERE BookId='%s'" % (bookId)
             query.exec_(sql)
             if (query.next()):
-                # sql = "UPDATE Book SET NumStorage=NumStorage+%d,NumCanBorrow=NumCanBorrow+%d WHERE BookId='%s'" % (
-                #     addBookNum, addBookNum, bookId)
-                self.isExist()
-            else:#如果不存在，则update Book表，则insert Book表，同时insert buyordrop表
-                sql = "INSERT INTO book VALUES ('%s','%s','%s','%s','%s','%s','%s',0,'%s')" % (
-                    bookName, bookId,ISSN, authName, bookCategory, publisher, publishTime, location)
-            # print(sql)
+                sql = "UPDATE Book SET NumStorage=NumStorage+%d,NumCanBorrow=NumCanBorrow+%d WHERE BookId='%s'" % (
+                    addBookNum, addBookNum, bookId)
+            else:
+                sql = "INSERT INTO book VALUES ('%s','%s','%s','%s','%s','%s',%d,%d,0)" % (
+                    bookName, bookId, authName, bookCategory, publisher, publishTime, addBookNum, addBookNum)
             query.exec_(sql)
             db.commit()
-
             # 插入droporinsert表
             timenow = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-            sql = "INSERT INTO buyordrop VALUES ('%s','%s',1)" % (bookId, timenow)
+            sql = "INSERT INTO buyordrop VALUES ('%s','%s',1,%d)" % (bookId, timenow, addBookNum)
             query.exec_(sql)
             db.commit()
-            print(QMessageBox.information(self, ":)", "Operation Success!", QMessageBox.Yes, QMessageBox.Yes))
+            print(QMessageBox.information(self, "Operation Success!", QMessageBox.Yes, QMessageBox.Yes))
             self.add_book_success_signal.emit()
             self.close()
             self.clearEdit()
@@ -162,15 +151,9 @@ class addBookDialog(QDialog):
         self.publisherEdit.clear()
 
 
-    def isExist(self):
-        QMessageBox.information(self, "Information",
-                                self.tr("bookID is existed，rewrite the ID"))
-        self.label.setText("Information MessageBox")
-
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("./images/library.png"))
+    app.setWindowIcon(QIcon("./images/MainWindow_1.png"))
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     mainMindow = addBookDialog()
     mainMindow.show()
